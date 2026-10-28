@@ -7,7 +7,7 @@ VERSION ?= $(shell sed -n 's/^version: *//p' plugin.yaml)
 .PHONY: init build package clean
 
 init:
-	cd ui && pnpm --ignore-workspace install --frozen-lockfile
+	cd ui && pnpm install --frozen-lockfile
 
 build: init
 	cd ui && pnpm build
