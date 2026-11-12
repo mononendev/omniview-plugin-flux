@@ -141,7 +141,7 @@ func execute(pc *types.PluginContext, operation string, raw json.RawMessage) (*t
 	if err != nil {
 		return nil, err
 	}
-	suspendSchema, err := a.schema(ctx, rep, "spec", "suspend")
+	suspendSchema, err := a.schema(ctx, typ, rep, "spec", "suspend")
 	if err != nil {
 		return nil, err
 	}
@@ -160,10 +160,10 @@ func execute(pc *types.PluginContext, operation string, raw json.RawMessage) (*t
 		if staticObject(key, body) {
 			return nil, unsupported()
 		}
-		if _, err := a.schema(ctx, rep, "status", "lastHandledReconcileAt"); err != nil {
+		if _, err := a.schema(ctx, typ, rep, "status", "lastHandledReconcileAt"); err != nil {
 			return nil, err
 		}
-		if _, err := a.schema(ctx, rep, "status", "conditions"); err != nil {
+		if _, err := a.schema(ctx, typ, rep, "status", "conditions"); err != nil {
 			return nil, err
 		}
 	}

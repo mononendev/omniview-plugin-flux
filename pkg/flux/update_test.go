@@ -21,8 +21,11 @@ func (f *updateFixture) Catalog(context.Context, string, resource.CatalogRequest
 func (f *updateFixture) ResolveTarget(context.Context, string, hostconnections.ResolveTargetRequest) (hostconnections.ResolvedTarget, error) {
 	panic("unexpected resolve")
 }
-func (f *updateFixture) GetSchemaDocument(context.Context, string, resource.AccessRoute, resource.SchemaDocumentReference) (resource.SchemaDocument, error) {
-	panic("unexpected schema")
+func (f *updateFixture) ResolveSchema(context.Context, string, resource.SchemaRequest) (resource.SchemaBinding, error) {
+	panic("unexpected schema resolution")
+}
+func (f *updateFixture) GetSchemaDocument(context.Context, string, resource.SchemaDocumentRequest) (resource.SchemaDocument, error) {
+	panic("unexpected schema document")
 }
 func (f *updateFixture) Enumerate(context.Context, string, string, resource.EnumerateRequest) (resource.SourcePage, error) {
 	panic("unexpected enumerate")

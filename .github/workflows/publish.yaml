@@ -7,7 +7,7 @@ name: Publish Plugin
 # cluster instead of through the public hostname. The archives themselves are
 # still uploaded to the public storage hostname the API signs upload links for.
 #
-# SDK v0.19.1 requires Go 1.27. Coordinate publication with host v0.35.1.
+# SDK v0.20.0 requires Go 1.27. Coordinate publication with host v0.36.0.
 # After the release PR is merged and CI passes, tag the merged commit with
 # the plugin.yaml version and push the tag. A tag push publishes the plugin
 # and creates a GitHub release; workflow_dispatch can package a dry run.
@@ -107,7 +107,7 @@ jobs:
           publisher-slug: mononen
           plugin-id: flux
           version: ${{ steps.version.outputs.value }}
-          min-ide-version: "0.35.1"
+          min-ide-version: "0.36.0"
           artifact-path: dist/
           architectures: ${{ steps.version.outputs.platforms }}
 

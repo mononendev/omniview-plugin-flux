@@ -162,14 +162,18 @@ func (a *access) get(ctx context.Context, target hostconnections.ResolvedTarget,
 	return a.client.Get(ctx, owner, target.TargetID, resource.GetRequest{Route: a.route, Representation: target.Target.Representation, Reference: resource.ResourceReference{Address: resource.ResourceAddress{Provider: target.Target.Provider, Authority: target.Target.Authority, Type: target.Target.Type, Scope: scope, ID: name}}})
 }
 
-func (a *access) schema(ctx context.Context, rep resource.Representation, fields ...string) (map[string]any, error) {
-	binding := rep.Schema
+func (a *access) schema(ctx context.Context, typ resource.ResourceType, rep resource.Representation, fields ...string) (map[string]any, error) {
+	request := resource.SchemaRequest{Route: a.route, Type: typ.Type, Target: resource.SchemaTarget{Representation: &rep}}
+	binding, err := a.client.ResolveSchema(ctx, owner, request)
+	if err != nil {
+		return nil, err
+	}
 	if binding.State != "available" {
 		return nil, unsupported()
 	}
 	document := binding.Document
 	if binding.DocumentRef != nil {
-		referenced, err := a.client.GetSchemaDocument(ctx, owner, a.route, *binding.DocumentRef)
+		referenced, err := a.client.GetSchemaDocument(ctx, owner, resource.SchemaDocumentRequest{Request: request, Reference: *binding.DocumentRef})
 		if err != nil {
 			return nil, err
 		}

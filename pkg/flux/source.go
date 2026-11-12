@@ -98,10 +98,10 @@ func (a *access) reconcileGraph(ctx context.Context, key objectKey, timestamp st
 	if staticObject(key, body) {
 		return nil, unsupported()
 	}
-	if _, err := a.schema(ctx, rep, "status", "lastHandledReconcileAt"); err != nil {
+	if _, err := a.schema(ctx, typ, rep, "status", "lastHandledReconcileAt"); err != nil {
 		return nil, err
 	}
-	if _, err := a.schema(ctx, rep, "status", "conditions"); err != nil {
+	if _, err := a.schema(ctx, typ, rep, "status", "conditions"); err != nil {
 		return nil, err
 	}
 	var source objectKey

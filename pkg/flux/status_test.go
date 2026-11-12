@@ -29,7 +29,7 @@ func testCatalog() resource.Catalog {
 	return resource.Catalog{Types: []resource.ResourceType{{
 		Type: "k8s:source.toolkit.fluxcd.io/gitrepositories", DisplayName: "GitRepository",
 		IdentityDimensions: []resource.Dimension{{Name: "namespace"}}, QueryDimensions: []resource.Dimension{{Name: "namespace"}},
-		DefaultRepresentation: "v1", Representations: []resource.Representation{{ID: "v1"}},
+		DefaultRepresentation: "v1", Representations: []resource.Representation{{ID: "v1", Revision: "format-1"}},
 		Capabilities: []resource.Capability{{Operation: resource.OperationEnumerate, Scope: resource.QueryScope{{Dimension: "namespace", Match: resource.ScopeAny}}}},
 	}}}
 }

@@ -1,5 +1,5 @@
 id: flux
-version: 0.4.2
+version: 0.5.0
 name: Flux CD
 icon: SiFlux
 description: Flux CD is a continuous delivery tool for Kubernetes that ensures the cluster state matches the desired state defined in Git.

@@ -13,12 +13,27 @@ import (
 
 type graphFixture struct {
 	updateFixture
-	objects map[string]map[string]any
-	events  []string
+	objects   map[string]map[string]any
+	events    []string
+	schemaErr error
 }
 
 func (f *graphFixture) ResolveTarget(_ context.Context, _ string, req hostconnections.ResolveTargetRequest) (hostconnections.ResolvedTarget, error) {
 	return hostconnections.ResolvedTarget{TargetID: req.Type, Target: resource.ReadTarget{Route: req.Route, Provider: "kubernetes", Authority: "host", Type: req.Type, Scope: req.Scope, Representation: req.Representation}}, nil
+}
+func (f *graphFixture) ResolveSchema(_ context.Context, requestedOwner string, req resource.SchemaRequest) (resource.SchemaBinding, error) {
+	if f.schemaErr != nil {
+		return resource.SchemaBinding{}, f.schemaErr
+	}
+	if requestedOwner != owner || req.Target.Representation == nil || req.Target.Auxiliary != nil || *req.Target.Representation != (resource.Representation{ID: "v1", Revision: "format-1"}) {
+		return resource.SchemaBinding{}, unsupported()
+	}
+	for key := range f.objects {
+		if strings.HasPrefix(key, req.Type+"/") {
+			return resource.SchemaBinding{State: "available", Dialect: "https://json-schema.org/draft/2020-12/schema", Document: json.RawMessage(`{"properties":{"status":{"properties":{"lastHandledReconcileAt":{"type":"string"},"conditions":{"type":"array"}}}}}`)}, nil
+		}
+	}
+	return resource.SchemaBinding{}, unsupported()
 }
 func (f *graphFixture) Get(_ context.Context, _ string, id string, req resource.GetRequest) (resource.Record, error) {
 	key := id + "/" + req.Reference.Address.ID
@@ -46,8 +61,7 @@ func (f *graphFixture) Update(_ context.Context, _ string, id string, req resour
 	return resource.Record{Body: body, Reference: req.Reference}, err
 }
 func graphDescriptor(kind, group, plural string) resource.ResourceType {
-	schema := json.RawMessage(`{"properties":{"status":{"properties":{"lastHandledReconcileAt":{"type":"string"},"conditions":{"type":"array"}}}}}`)
-	return resource.ResourceType{Type: "k8s:" + group + ".toolkit.fluxcd.io/" + plural, DisplayName: kind, IdentityDimensions: []resource.Dimension{{Name: "namespace"}}, QueryDimensions: []resource.Dimension{{Name: "namespace"}}, DefaultRepresentation: "v1", Representations: []resource.Representation{{ID: "v1", Schema: resource.SchemaBinding{State: "available", Document: schema}}}}
+	return resource.ResourceType{Type: "k8s:" + group + ".toolkit.fluxcd.io/" + plural, DisplayName: kind, IdentityDimensions: []resource.Dimension{{Name: "namespace"}}, QueryDimensions: []resource.Dimension{{Name: "namespace"}}, DefaultRepresentation: "v1", Representations: []resource.Representation{{ID: "v1", Revision: "format-1"}}}
 }
 func graphObject(spec map[string]any) map[string]any {
 	return map[string]any{"metadata": map[string]any{"generation": int64(1)}, "spec": spec}
@@ -94,6 +108,19 @@ func TestGraphRejectsVisitedCycleBeforeDispatch(t *testing.T) {
 	key := objectKey{"Kustomization", "ns", "app"}
 	if _, err := a.reconcileGraph(context.Background(), key, "stamp", false, true, map[objectKey]bool{{"kustomization", "ns", "app"}: true}); err == nil || len(f.events) != 0 {
 		t.Fatalf("cycle dispatched: %v, %v", err, f.events)
+	}
+}
+
+func TestGraphSchemaDenialPreventsWrites(t *testing.T) {
+	typ := graphDescriptor("Kustomization", "kustomize", "kustomizations")
+	denied := fmt.Errorf("schema denied")
+	f := &graphFixture{schemaErr: denied, objects: map[string]map[string]any{typ.Type + "/app": graphObject(map[string]any{})}}
+	a := access{client: f, catalog: resource.Catalog{Types: []resource.ResourceType{typ}}}
+	if _, err := a.reconcileGraph(context.Background(), objectKey{"Kustomization", "ns", "app"}, "stamp", false, false, map[objectKey]bool{}); err != denied {
+		t.Fatalf("schema denial lost: %v", err)
+	}
+	if strings.Contains(strings.Join(f.events, ","), "update:") {
+		t.Fatalf("write after schema denial: %v", f.events)
 	}
 }
 
