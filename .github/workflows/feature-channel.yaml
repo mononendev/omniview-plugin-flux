@@ -1,0 +1,102 @@
+name: Publish Feature Channel
+
+on:
+  push:
+    branches: ['feature/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PLATFORMS: darwin_arm64 darwin_amd64 linux_amd64 linux_arm64 windows_amd64
+
+jobs:
+  publish:
+    runs-on: [homelab]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check marketplace URL
+        env:
+          OMNIVIEW_API_URL: ${{ vars.OMNIVIEW_API_URL }}
+        run: |
+          if [ -z "$OMNIVIEW_API_URL" ]; then
+            echo "::error::Repository variable OMNIVIEW_API_URL is not set"
+            exit 1
+          fi
+
+      - name: Resolve channel
+        id: channel
+        uses: omniviewdev/publish-plugin-action/resolve-channel@v1.2.0
+        with:
+          kind: plugin
+          channels-url: ${{ vars.OMNIVIEW_API_URL }}/v1/plugins/flux/channels
+
+      - uses: actions/setup-go@v5
+        if: steps.channel.outputs.enabled == 'true'
+        with:
+          go-version-file: go.mod
+
+      - uses: pnpm/action-setup@v4
+        if: steps.channel.outputs.enabled == 'true'
+        with:
+          version: 12.14.0
+
+      - uses: actions/setup-node@v4
+        if: steps.channel.outputs.enabled == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: Ensure make
+        if: steps.channel.outputs.enabled == 'true'
+        run: |
+          command -v make && exit 0
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends make
+
+      - name: Build and package
+        if: steps.channel.outputs.enabled == 'true'
+        env:
+          VERSION: ${{ steps.channel.outputs.version }}
+        run: |
+          make init test
+          make package VERSION="$VERSION" PLATFORMS="$PLATFORMS"
+
+      - name: Prepare publish
+        if: steps.channel.outputs.enabled == 'true'
+        id: publish
+        env:
+          OMNIVIEW_API_URL: ${{ vars.OMNIVIEW_API_URL }}
+          STORAGE_HOST: ${{ vars.OMNIVIEW_STORAGE_HOST }}
+        run: |
+          curl -fsS --retry 3 --max-time 15 "${OMNIVIEW_API_URL%/}/v1/health" > /dev/null
+          echo "platforms=${PLATFORMS// /,}" >> "$GITHUB_OUTPUT"
+          if [ -n "$STORAGE_HOST" ]; then
+            for attempt in 1 2 3 4 5; do
+              ip=$(getent ahostsv4 "$STORAGE_HOST" | awk 'NR==1 {print $1}')
+              if [ -n "$ip" ]; then
+                echo "$ip $STORAGE_HOST" | sudo tee -a /etc/hosts
+                break
+              fi
+              echo "lookup of $STORAGE_HOST failed (attempt $attempt), retrying"; sleep 5
+            done
+            [ -n "$ip" ] || exit 1
+          fi
+
+      - name: Publish to marketplace
+        if: steps.channel.outputs.enabled == 'true'
+        uses: omniviewdev/publish-plugin-action@v1.2.0
+        with:
+          api-key: ${{ secrets.OMNIVIEW_API_KEY }}
+          api-url: ${{ vars.OMNIVIEW_API_URL }}
+          publisher-slug: mononen
+          plugin-id: flux
+          version: ${{ steps.channel.outputs.version }}
+          artifact-path: dist/
+          architectures: ${{ steps.publish.outputs.platforms }}
+          channel: ${{ steps.channel.outputs.channel }}
