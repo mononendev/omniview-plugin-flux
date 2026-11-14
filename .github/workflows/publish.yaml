@@ -100,7 +100,7 @@ jobs:
 
       - name: Publish to marketplace
         if: ${{ !inputs.dry-run }}
-        uses: omniviewdev/publish-plugin-action@da971a73161a4ddd5fcd80bd2b0cb7438ba78530 # v1.1.0
+        uses: omniviewdev/publish-plugin-action@46937e6bdf076c997b76fb01fc7770c7074d9d9c # v1.3.0
         with:
           api-key: ${{ secrets.OMNIVIEW_API_KEY }}
           api-url: ${{ vars.OMNIVIEW_API_URL }}

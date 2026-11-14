@@ -31,7 +31,7 @@ jobs:
 
       - name: Resolve channel
         id: channel
-        uses: omniviewdev/publish-plugin-action/resolve-channel@v1.2.0
+        uses: omniviewdev/publish-plugin-action/resolve-channel@46937e6bdf076c997b76fb01fc7770c7074d9d9c # v1.3.0
         with:
           kind: plugin
           channels-url: ${{ vars.OMNIVIEW_API_URL }}/v1/plugins/flux/channels
@@ -90,7 +90,7 @@ jobs:
 
       - name: Publish to marketplace
         if: steps.channel.outputs.enabled == 'true'
-        uses: omniviewdev/publish-plugin-action@v1.2.0
+        uses: omniviewdev/publish-plugin-action@46937e6bdf076c997b76fb01fc7770c7074d9d9c # v1.3.0
         with:
           api-key: ${{ secrets.OMNIVIEW_API_KEY }}
           api-url: ${{ vars.OMNIVIEW_API_URL }}
